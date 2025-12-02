@@ -10,43 +10,36 @@ def generate_chart(subject_file):
     subject_name = subject_file.replace(".csv", "")
     path = os.path.join(DATA_DIR, subject_file)
 
-    # 跳过空文件
     if os.path.getsize(path) == 0:
         print(f"⚠️ Skip {subject_file} (empty file)")
         return
 
-    try:
-        df = pd.read_csv(path)
-    except pd.errors.EmptyDataError:
+    df = pd.read_csv(path)
+    if df.empty or "score" not in df.columns:
         print(f"⚠️ Skip {subject_file} (no data)")
         return
 
-    # 如果只有表头，没数据
-    if df.empty:
-        print(f"⚠️ Skip {subject_file} (no rows)")
-        return
-
-    # 保证 date 字段可解析
-    if "date" not in df.columns or "score" not in df.columns:
-        print(f"⚠️ Skip {subject_file} (missing columns)")
-        return
-
-    df["date"] = pd.to_datetime(df["date"])
-
     plt.figure(figsize=(10, 5))
-    plt.plot(df["date"], df["score"], marker="o")
-    plt.title(f"{subject_name.capitalize()} Score Trend")
+
+    # 主科目线
+    plt.plot(df["date"], df["score"], marker="o", label=subject_name)
+
+    # 平均分红色虚线
+    if "Average" in df.columns:
+        plt.plot(df["date"], df["Average"], linestyle="--", marker="x", color="red", label="Average")
+
+    plt.title(f"{subject_name.capitalize()} Score Trend with Average")
     plt.xlabel("Date")
     plt.ylabel("Score")
     plt.grid(True)
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=30)
+    plt.legend()
     plt.tight_layout()
 
-    out_path = os.path.join(CHART_DIR, f"{subject_name}.png")
-    plt.savefig(out_path)
+    plt.savefig(os.path.join(CHART_DIR, f"{subject_name}.png"))
     plt.close()
 
-    print(f"✅ Generated {out_path}")
+    print(f"✅ Generated {subject_name}.png")
 
 def main():
     for file in os.listdir(DATA_DIR):
