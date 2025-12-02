@@ -1,22 +1,40 @@
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
 DATA_DIR = "data"
 CHART_DIR = "charts"
-
 os.makedirs(CHART_DIR, exist_ok=True)
 
 def generate_chart(subject_file):
     subject_name = subject_file.replace(".csv", "")
     path = os.path.join(DATA_DIR, subject_file)
 
-    df = pd.read_csv(path)
+    # 跳过空文件
+    if os.path.getsize(path) == 0:
+        print(f"⚠️ Skip {subject_file} (empty file)")
+        return
+
+    try:
+        df = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        print(f"⚠️ Skip {subject_file} (no data)")
+        return
+
+    # 如果只有表头，没数据
+    if df.empty:
+        print(f"⚠️ Skip {subject_file} (no rows)")
+        return
+
+    # 保证 date 字段可解析
+    if "date" not in df.columns or "score" not in df.columns:
+        print(f"⚠️ Skip {subject_file} (missing columns)")
+        return
+
     df["date"] = pd.to_datetime(df["date"])
 
     plt.figure(figsize=(10, 5))
-    plt.plot(df["date"], df["score"], marker='o')
+    plt.plot(df["date"], df["score"], marker="o")
     plt.title(f"{subject_name.capitalize()} Score Trend")
     plt.xlabel("Date")
     plt.ylabel("Score")
@@ -28,7 +46,7 @@ def generate_chart(subject_file):
     plt.savefig(out_path)
     plt.close()
 
-    print(f"Generated {out_path}")
+    print(f"✅ Generated {out_path}")
 
 def main():
     for file in os.listdir(DATA_DIR):
